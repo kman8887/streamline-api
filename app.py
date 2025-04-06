@@ -13,7 +13,7 @@ import exceptions_views
 
 def create_app():
     # use fastAPI instead
-    app = Flask(__name__, instance_relative_config=True)
+    app = Flask(__name__, instance_relative_config=True, origins=[os.getenv("ORIGINS")])
 
     app.config["CLIENT_ORIGIN_URL"] = "http://localhost:4200"
     app.config["AUTH0_AUDIENCE"] = "http://localhost:5000"
