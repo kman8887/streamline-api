@@ -9,6 +9,7 @@ from users.users_views import bp as users_bp
 from reviews.reviews_views import bp as reviews_bp
 from recommendation.recommender_views import bp as recommendation_bp
 import exceptions_views
+from flask_cors import CORS
 
 
 def create_app():
@@ -46,7 +47,7 @@ def create_app():
         )
         return response
 
-    CORS(app)
+    CORS(app, origins=os.getenv("ORIGINS"))
 
     app.register_blueprint(users_bp)
     app.register_blueprint(movies_bp)
