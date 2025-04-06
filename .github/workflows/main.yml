@@ -1,4 +1,10 @@
 name: gitleaks
+permissions:
+  actions: write  
+  checks: write    
+  pull-requests: write 
+  contents: read
+  packages: write
 on:
   pull_request:
   push:
@@ -12,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
         env:
