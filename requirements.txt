@@ -31,3 +31,6 @@ scipy==1.15.2
 azure-storage-blob==12.25.1
 azure-identity==1.21.0
 python-dotenv==1.1.0
+apispec==6.8.1
+flask-apispec==0.11.4
+marshmallow==3.26.1
