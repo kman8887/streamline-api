@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_talisman import Talisman
 from flask import Flask
 
+from common.utils.utils_views import bp as utils_bp
 from security.auth0_service import auth0_service
 from movies.movies_views import bp as movies_bp
 from users.users_views import bp as users_bp
@@ -47,12 +48,14 @@ def create_app():
         )
         return response
 
-    CORS(app, origins=os.getenv("ORIGINS"))
+    print(os.getenv("ORIGINS"))
+    CORS(app, origins=[os.getenv("ORIGINS")])
 
     app.register_blueprint(users_bp)
     app.register_blueprint(movies_bp)
     app.register_blueprint(reviews_bp)
     app.register_blueprint(recommendation_bp)
+    app.register_blueprint(utils_bp)
     app.register_blueprint(exceptions_views.bp)
 
     return app
