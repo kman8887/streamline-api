@@ -16,8 +16,8 @@ def create_app():
     # use fastAPI instead
     app = Flask(__name__, instance_relative_config=True)
 
-    app.config["CLIENT_ORIGIN_URL"] = "http://localhost:4200"
-    app.config["AUTH0_AUDIENCE"] = "http://localhost:5000"
+    app.config["CLIENT_ORIGIN_URL"] = os.getenv("CLIENT_ORIGIN_URL")
+    app.config["AUTH0_AUDIENCE"] = os.getenv("AUTH0_AUDIENCE")
     app.config["AUTH0_DOMAIN"] = os.getenv("AUTH0_DOMAIN")
     app.config["MGMT_API_ACCESS_TOKEN"] = os.getenv("MGMT_API_ACCESS_TOKEN")
 
