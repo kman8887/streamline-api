@@ -149,7 +149,7 @@ def get_filtered_reviews(params: ReviewFilterParams, user_id: int) -> List[Revie
     """
     query = """
     SELECT * FROM get_filtered_reviews(
-        %(movie_id)s, %(user_id)s, %(rating_from)s::numeric, %(rating_to)s::numeric,
+        %(movie_id)s::CHAR(24), %(user_id)s::integer, %(rating_from)s::numeric, %(rating_to)s::numeric,
         %(order_by)s, %(order_direction)s,
         %(limit_rows)s, %(offset_rows)s
     )
@@ -196,7 +196,7 @@ def get_filtered_reviews_with_movie_details(
     """
     query = """
     SELECT * FROM get_filtered_reviews_with_movie_details(
-        %(movie_id)s, %(user_id)s, %(rating_from)s::numeric, %(rating_to)s::numeric,
+        %(movie_id)s::CHAR(24), %(user_id)s::integer, %(rating_from)s::numeric, %(rating_to)s::numeric,
         %(order_by)s, %(order_direction)s,
         %(limit_rows)s, %(offset_rows)s
     )
@@ -245,7 +245,7 @@ def count_filtered_reviews(params: ReviewFilterParams) -> int:
     :return: Total number of matching reviews.
     """
     query = """
-    SELECT count_filtered_reviews(%(movie_id)s, %(user_id)s, %(rating_from)s::numeric, %(rating_to)s::numeric)
+    SELECT count_filtered_reviews(%(movie_id)s::CHAR(24), %(user_id)s::integer, %(rating_from)s::numeric, %(rating_to)s::numeric)
     """
 
     with psycopg.connect(**DB_CONFIG) as conn:
