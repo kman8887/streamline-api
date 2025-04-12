@@ -15,6 +15,10 @@ from reviews.reviews_views import bp as reviews_bp
 from recommendation.recommender_views import bp as recommendation_bp
 import exceptions_views
 from apispec.ext.marshmallow import MarshmallowPlugin
+from common.utils.utils import cache
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -68,6 +72,15 @@ def create_app():
         return response
 
     auth0_service.initialize(app.config["AUTH0_DOMAIN"], app.config["AUTH0_AUDIENCE"])
+
+    app.config["CACHE_TYPE"] = "RedisCache"
+    app.config["CACHE_REDIS_HOST"] = os.getenv("REDIS_HOST")
+    app.config["CACHE_REDIS_PORT"] = os.getenv("REDIS_PORT")
+    app.config["CACHE_REDIS_PASSWORD"] = os.getenv("REDIS_PASSWORD")
+    app.config["CACHE_DEFAULT_TIMEOUT"] = 3600
+    app.config["CACHE_OPTIONS"] = {"ssl": True}
+
+    cache.init_app(app)
 
     CORS(app, origins=[os.getenv("ORIGINS")])
 

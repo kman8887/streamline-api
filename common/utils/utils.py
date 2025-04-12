@@ -4,7 +4,9 @@ from typing import Dict
 from flask import jsonify, abort
 from pymongo import MongoClient
 from functools import wraps
+from flask_caching import Cache
 
+cache = Cache()
 mongo = MongoClient(os.getenv("MONGO_URL"))
 db = mongo["streamLineDB"]
 movies_db = db["movies"]
