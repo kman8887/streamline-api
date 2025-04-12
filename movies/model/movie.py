@@ -26,4 +26,5 @@ class Movie:
     director: List[str]
     writer: List[str]
     top_cast: List[str]
+    is_movie_in_watchlist: Optional[bool] = None
     user_interactions: Optional[List[MovieDetailsUserInteraction]] = None

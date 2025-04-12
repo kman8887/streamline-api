@@ -1,10 +1,6 @@
 import threading
-from bson import ObjectId
 from flask import Blueprint, g, make_response, jsonify, request
 from common.utils import azure_blob
-from queryService import get_review_filters, get_review_sorting
-from reviews.reviews_service import getReviewsPipeline
-import json
 
 from security.guards import authorization_guard
 
@@ -14,9 +10,7 @@ from security.guards import (
     unauthorized_error,
 )
 
-import user_movie_interactions.user_movie_interaction_service as user_movie_interaction_service
 import users.users_service as users_service
-from common.utils.utils import movies_db
 import recommendation.recommendation_service as recommendation_service
 import recommendation.hybrid_recommendation_service as hybrid_recommendation_service
 
@@ -36,9 +30,10 @@ def getRecommendations(user_id):
     recommendation = recommendation_service.get_recommendations(user_id, movie_id)
 
     if recommendation is None or len(recommendation) == 0:
-        recommendation = get_baseline_recs()
+        recommendation = get_baseline_recs(movie_id)
 
-    print(recommendation)
+    if recommendation is None:
+        return make_response(jsonify({"error": "No recommendations found"}), 404)
 
     return make_response(
         jsonify(recommendation),
@@ -77,4 +72,4 @@ def generate_recommendations(user_id: int):
 
 def get_baseline_recs(movie_id: str):
     artifacts = azure_blob.load_artifacts()
-    return artifacts["baseline_recs"][movie_id]
+    return artifacts["baseline_recs"].get(movie_id)

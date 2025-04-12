@@ -111,33 +111,53 @@ def __getUserInfo(auth_id):
         "Authorization": f"Bearer {token}",
     }
 
-    response = requests.request("GET", url, headers=headers, data=payload)
-    data = response.json()
+    try:
+        response = requests.request("GET", url, headers=headers, data=payload)
 
-    region, languages = None, None
+        response.raise_for_status()
 
-    if data.get("user_metadata"):
-        if data["user_metadata"].get("region"):
-            region = data["user_metadata"]["region"]
-        if data["user_metadata"].get("language"):
-            languages = data["user_metadata"]["language"]
-            if isinstance(languages, str):
-                languages = [languages]  # Convert single string to a list
-            languages = json.dumps(languages)
+        data = response.json()
 
-    return {
-        "username": data["nickname"],
-        "real_name": data["name"],
-        "avatar": data["picture"],
-        "region": region,
-        "auth_id": auth_id,
-        "creation_date": datetime.datetime.now(tz=datetime.timezone.utc),
-        "languages": languages,
-    }
+        region, languages = None, None
+
+        if data.get("user_metadata"):
+            if data["user_metadata"].get("region"):
+                region = data["user_metadata"]["region"]
+            if data["user_metadata"].get("language"):
+                languages = data["user_metadata"]["language"]
+                if isinstance(languages, str):
+                    languages = [languages]  # Convert single string to a list
+                languages = json.dumps(languages)
+
+        return {
+            "username": data["nickname"],
+            "real_name": data["name"],
+            "avatar": data["picture"],
+            "region": region,
+            "auth_id": auth_id,
+            "creation_date": datetime.datetime.now(tz=datetime.timezone.utc),
+            "languages": languages,
+        }
+    except requests.exceptions.HTTPError as http_err:
+        app.logger.error(f"[Auth0] HTTP error: {http_err}")
+        raise ValueError(f"Auth0 HTTP error: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        app.logger.error(f"[Auth0] Request failed: {req_err}")
+        raise ValueError(f"Auth0 request error: {req_err}")
+    except json.JSONDecodeError as json_err:
+        app.logger.error(f"[Auth0] Failed to parse JSON: {json_err}")
+        raise ValueError("Invalid response format from Auth0")
+    except Exception as e:
+        app.logger.error(f"[Auth0] Unexpected error: {e}")
+        raise ValueError("Unexpected error occurred when fetching user info")
 
 
 def __updateUserMetadata(auth_id, languages, region):
     token = app.config["MGMT_API_ACCESS_TOKEN"]
+    if not token or not isinstance(token, str):
+        app.logger.warning("MGMT_API_ACCESS_TOKEN is missing or invalid")
+    else:
+        app.logger.debug(f"MGMT_API_ACCESS_TOKEN loaded, length={len(token)}")
     userId = urllib.parse.quote(auth_id)
 
     url = f"https://dev-n20bicxbia0qquf1.eu.auth0.com/api/v2/users/{userId}"
