@@ -16,6 +16,9 @@ from movies.model.tag import Tag
 from movies.model.user_movie_interactions import MovieDetailsUserInteraction
 from movies.model.watch_provider import WatchProvider
 from recommendation.model.user_movie_interaction import MovieMetadata
+from common.utils.utils import cache
+import hashlib
+import json
 
 
 def get_filter_params(logged_in_user: int) -> MoviesFilterParams:
@@ -70,7 +73,24 @@ def get_movie_sorting(default_sorting="popularity"):
     return default_sorting, "DESC"
 
 
-def get_movies_and_count(params: MoviesFilterParams) -> Dict[str, List[Dict[str, any]]]:
+def get_movies_and_count_cached(
+    params: MoviesFilterParams, include_user: bool = True
+) -> Dict[str, List[Dict[str, any]]]:
+    cache_key = __generate_movies_cache_key(params, include_user=include_user)
+    cached_result = cache.get(cache_key)
+
+    if cached_result:
+        return cached_result
+
+    result = __get_movies_and_count(params)
+    cache.set(cache_key, result, timeout=3600)
+
+    return result
+
+
+def __get_movies_and_count(
+    params: MoviesFilterParams,
+) -> Dict[str, List[Dict[str, any]]]:
     select_query = """
                 SELECT * FROM get_filtered_movies(
                     %(search)s, %(genre_ids)s, %(tag_ids)s,
@@ -146,6 +166,7 @@ def get_movies_and_count(params: MoviesFilterParams) -> Dict[str, List[Dict[str,
     return {"movies": [asdict(movie) for movie in movies], "total_count": total_count}
 
 
+@cache.memoize(timeout=3600)
 def get_distinct_genres_tags_and_watch_providers(region: str) -> FilterOptions:
     """Fetch distinct genres and tags from the database."""
     with psycopg.connect(**DB_CONFIG) as conn:
@@ -169,6 +190,7 @@ def get_distinct_genres_tags_and_watch_providers(region: str) -> FilterOptions:
     return FilterOptions(genres=genres, tags=tags, watch_providers=watch_providers)
 
 
+@cache.memoize(timeout=3600)
 def get_distinct_watch_providers(region: str) -> List[FilterOption]:
     """Fetch distinct watch providers from the database."""
     with psycopg.connect(**DB_CONFIG) as conn:
@@ -182,6 +204,7 @@ def get_distinct_watch_providers(region: str) -> List[FilterOption]:
     return watch_providers
 
 
+@cache.memoize(timeout=3600)
 def get_onboarding_movies(user_id: int) -> OnboardingMovie:
     page_start, page_size = __get_paging_params()
 
@@ -210,6 +233,7 @@ def get_onboarding_movies(user_id: int) -> OnboardingMovie:
     return onboarding_movies
 
 
+@cache.memoize(timeout=3600)
 def get_movie_details(
     movie_id: str, region: str = "GB", user_id: Optional[int] = None
 ) -> Optional[Movie]:
@@ -481,3 +505,31 @@ def __get_paging_params():
     page_start = page_size * (page_num)
 
     return page_start, page_size
+
+
+def __generate_movies_cache_key(
+    params: MoviesFilterParams, include_user: bool = False
+) -> str:
+    key_data = {
+        "search": params.search,
+        "genre_ids": params.genre_ids,
+        "tag_ids": params.tag_ids,
+        "release_date_from": params.release_date_from,
+        "release_date_to": params.release_date_to,
+        "rating_from": params.rating_from,
+        "rating_to": params.rating_to,
+        "watch_provider_ids": params.watch_provider_ids,
+        "region_filter": params.region_filter,
+        "status_filter": params.status_filter,
+        "languages": params.languages,
+        "order_by": params.order_by,
+        "order_direction": params.order_direction,
+        "limit_rows": params.limit_rows,
+        "offset_rows": params.offset_rows,
+    }
+
+    if include_user:
+        key_data["user_id"] = params.user_id_param
+
+    json_str = json.dumps(key_data, sort_keys=True)
+    return "movies_filter:" + hashlib.sha256(json_str.encode("utf-8")).hexdigest()

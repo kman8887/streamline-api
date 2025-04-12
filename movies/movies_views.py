@@ -8,13 +8,12 @@ from movies.model.user_movie_interaction_type import UserMovieInteractionType
 from movies.movies_service import (
     get_distinct_watch_providers,
     get_movie_details,
-    get_movies_and_count,
     get_filter_params,
     get_distinct_genres_tags_and_watch_providers,
 )
 import movies.movies_service as movies_service
 import users.users_service as users_service
-from common.utils.utils import movies_db, users_db
+from common.utils.utils import movies_db
 from common.utils.context_service import get_user_context
 from reviews.reviews_service import (
     add_review,
@@ -56,11 +55,9 @@ def show_all_movies() -> Any:
         params = get_filter_params(context_user_id)
         params.user_id_param = context_user_id
 
-        print(params)
+        include_user = context_user_id is not None
 
-        result = get_movies_and_count(params)
-
-        print(result)
+        result = movies_service.get_movies_and_count_cached(params, include_user)
 
         return make_response(jsonify(result), 200)
 
@@ -74,7 +71,7 @@ def show_all_movies() -> Any:
 def get_onboarding_movies() -> Any:
     try:
         user = users_service.getUserFromAccessToken()
-        print(user)
+
         result = movies_service.get_onboarding_movies(user.id)
 
         return make_response(jsonify(result), 200)
