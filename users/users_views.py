@@ -1,17 +1,11 @@
 from typing import Any, Dict
-from bson import ObjectId
 from flask import Blueprint, g, make_response, jsonify, request
-from flask_apispec import doc, marshal_with, use_kwargs
 from common.utils.context_service import get_user_context
-from queryService import get_review_filters, get_review_sorting
 from reviews.reviews_service import (
     count_filtered_reviews,
-    get_filtered_reviews,
     get_filtered_reviews_with_movie_details,
     get_review_filter_params,
-    getReviewsPipeline,
 )
-import json
 
 from schema.user_schema import CreateUserRequestSchema, CreateUserResponseSchema
 from security.guards import authorization_guard, context_provider
@@ -24,8 +18,6 @@ from security.guards import (
 
 import user_movie_interactions.user_movie_interaction_service as user_movie_interaction_service
 import users.users_service as users_service
-from common.utils.utils import movies_db
-
 
 bp_name = "users"
 bp_url_prefix = "/api/v1.0/users"
@@ -34,13 +26,7 @@ bp = Blueprint(bp_name, __name__, url_prefix=bp_url_prefix)
 
 @bp.route("", methods=["POST"], endpoint="createUser")
 @authorization_guard
-@doc(
-    description="Create a user. If the access token contains create permissions, admin flow is used.",
-    tags=["Users"],
-)
-@use_kwargs(CreateUserRequestSchema, location="json")
-@marshal_with(CreateUserResponseSchema)
-def createUser(**kwargs):
+def createUser():
     access_token = g.get("access_token")
 
     if not access_token:

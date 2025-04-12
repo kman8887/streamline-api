@@ -35,7 +35,6 @@ class Auth0Service:
 
     def validate_jwt(self, token):
         try:
-            print(token)
             jwt_signing_key = self.get_signing_key(token)
 
             payload = jwt.decode(

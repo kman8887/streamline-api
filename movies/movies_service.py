@@ -16,6 +16,7 @@ from movies.model.tag import Tag
 from movies.model.user_movie_interactions import MovieDetailsUserInteraction
 from movies.model.watch_provider import WatchProvider
 from recommendation.model.user_movie_interaction import MovieMetadata
+import users.users_service as users_service
 from common.utils.utils import cache
 import hashlib
 import json
@@ -24,8 +25,20 @@ import json
 def get_filter_params(logged_in_user: int) -> MoviesFilterParams:
     page_start, page_size = __get_paging_params()
 
+    watch_providers = (
+        [int(x) for x in request.args.getlist("watchProviders")]
+        if request.args.getlist("watchProviders")
+        else []
+    )
+
     if logged_in_user is not None:
         order_by, order_direction = get_movie_sorting("predicted_score")
+        if request.args.get("onlyShowUsersWatchProviders") == "true":
+            users_watch_providers = users_service.getUserWatchProviders(logged_in_user)
+
+            watch_providers = list(
+                set(users_watch_providers or []) | set(watch_providers)
+            )
     else:
         order_by, order_direction = get_movie_sorting()
 
@@ -45,11 +58,7 @@ def get_filter_params(logged_in_user: int) -> MoviesFilterParams:
         release_date_to=request.args.get("release_date_to"),
         rating_from=request.args.get("ratingFrom", type=float),
         rating_to=request.args.get("ratingTo", type=float),
-        watch_provider_ids=(
-            [int(x) for x in request.args.getlist("watchProviders")]
-            if request.args.getlist("watchProviders")
-            else None
-        ),
+        watch_provider_ids=(watch_providers if watch_providers else None),
         region_filter=g.region,
         status_filter=request.args.get("status"),
         languages=g.languages,
@@ -80,6 +89,7 @@ def get_movies_and_count_cached(
     cached_result = cache.get(cache_key)
 
     if cached_result:
+        print("cached result")
         return cached_result
 
     result = __get_movies_and_count(params)
@@ -233,7 +243,6 @@ def get_onboarding_movies(user_id: int) -> OnboardingMovie:
     return onboarding_movies
 
 
-@cache.memoize(timeout=3600)
 def get_movie_details(
     movie_id: str, region: str = "GB", user_id: Optional[int] = None
 ) -> Optional[Movie]:
@@ -367,6 +376,7 @@ def get_movie_details(
     try:
         with psycopg.connect(**DB_CONFIG, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
+                print("query: " + query)
                 cur.execute(query, params)
                 row = cur.fetchone()
                 if not row:
@@ -392,6 +402,9 @@ def get_movie_details(
                     director=[str(d) for d in row["director"]],
                     writer=[str(w) for w in row["writer"]],
                     top_cast=[str(c) for c in row["top_3_cast"]],
+                    is_movie_in_watchlist=(
+                        row["is_movie_in_watchlist"] if user_id else None
+                    ),
                     user_interactions=(
                         [
                             MovieDetailsUserInteraction(**ui)

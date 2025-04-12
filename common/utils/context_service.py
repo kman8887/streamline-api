@@ -11,4 +11,7 @@ def get_user_context() -> Context:
     auth_id = access_token.get("sub")
     user = users_dao.getUserFromAccessToken(auth_id)
 
+    if user is None:
+        return None
+
     return Context(user)
