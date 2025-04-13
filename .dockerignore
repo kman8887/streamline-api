@@ -1,0 +1,14 @@
+.venv/
+.vscode/
+artifacts/
+data/
+__pycache__/
+*.log
+*.csv
+*.parquet
+*.pkl
+tests/
+.flaskenv
+*.env
+node_modules/
+.git/
