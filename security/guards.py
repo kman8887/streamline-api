@@ -1,6 +1,5 @@
 from functools import wraps
 from http import HTTPStatus
-from types import SimpleNamespace
 
 from flask import request, g
 
@@ -14,11 +13,6 @@ invalid_request_error = {
     "error_description": "Authorization header value must follow this format: Bearer access-token",
     "message": "Requires authentication",
 }
-
-create_users_permissions = SimpleNamespace(create="create:users")
-generate_recommendation_permissions = SimpleNamespace(create="create:recommendation")
-reviews_permissions = SimpleNamespace(delete="delete:reviews", update="update:reviews")
-games_permissions = SimpleNamespace(create="create:games", delete="delete:games")
 
 
 def __get_bearer_token_from_request():

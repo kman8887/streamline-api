@@ -7,7 +7,6 @@ from security.guards import authorization_guard
 
 from security.guards import (
     authorization_guard,
-    generate_recommendation_permissions,
     unauthorized_error,
 )
 
@@ -53,34 +52,25 @@ def generate_recommendations():
     if not access_token:
         return make_response(jsonify(unauthorized_error), 401)
 
-    token_permissions = access_token.get("permissions")
-
     user_id = users_service.getUserFromAccessToken().id
 
     if not user_id:
         return make_response(jsonify(unauthorized_error), 401)
-
-    print("Generating recommendations for user:" + str(user_id))
 
     last_updated = recommendation_service.get_last_recommendation_update(user_id)
 
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     print(f"Last updated: {last_updated}, Now: {now}")
     if last_updated is not None and last_updated > (now - (datetime.timedelta(days=1))):
+        print("Recommendations already generated recently: " + str(user_id))
         return make_response(
             jsonify({"error": "Recommendations already generated recently"}), 200
         )
 
-    if token_permissions:
-        required_permissions_set = set([generate_recommendation_permissions.create])
-        token_permissions_set = set(token_permissions)
-
-        if required_permissions_set.issubset(token_permissions_set):
-            return make_response(jsonify({"message": "Not Implemented Yet"}), 200)
-
     lock_key = f"user:{user_id}:recommendation_lock"
 
     if cache.get(lock_key):
+        print("Already Processing User: " + str(user_id))
         return make_response(jsonify({"status": "already_processing"}), 200)
 
     cache.set(lock_key, True, timeout=LOCK_EXPIRY_SECONDS)
@@ -93,6 +83,8 @@ def generate_recommendations():
         finally:
             cache.delete(lock_key)
             print(f"Lock released for user {user_id}")
+
+    print("Generating recommendations for user:" + str(user_id))
 
     threading.Thread(target=async_task).start()
 

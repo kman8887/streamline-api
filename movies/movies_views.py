@@ -1,7 +1,6 @@
 import json
 import traceback
 from typing import Any, Dict, Optional
-from bson import ObjectId
 from flask import Blueprint, g, jsonify, make_response, request
 from movies.model.movie import Movie
 from movies.model.user_movie_interaction_type import UserMovieInteractionType
@@ -13,7 +12,6 @@ from movies.movies_service import (
 )
 import movies.movies_service as movies_service
 import users.users_service as users_service
-from common.utils.utils import movies_db
 from common.utils.context_service import get_user_context
 from reviews.reviews_service import (
     add_review,
@@ -21,15 +19,8 @@ from reviews.reviews_service import (
     get_filtered_reviews,
     get_review_filter_params,
     get_user_movie_rating,
-    getReviewsPipeline,
 )
-from security.guards import (
-    authorization_guard,
-    context_provider,
-    extract_headers,
-    permissions_guard,
-    games_permissions,
-)
+from security.guards import authorization_guard, context_provider, extract_headers
 from user_movie_interactions.user_movie_interaction_service import (
     toggle_movie_watchlist_value,
     toggle_user_interaction,

@@ -12,8 +12,6 @@ load_dotenv()
 cache = Cache()
 mongo = MongoClient(os.getenv("MONGO_URL"))
 db = mongo["streamLineDB"]
-movies_db = db["movies"]
-users_db = db.users
 letterboxd_interactions = db["letterboxd_interactions"]
 user_recommendations = db["user_recommendations"]
 

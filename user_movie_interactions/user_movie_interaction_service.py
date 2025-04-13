@@ -5,7 +5,6 @@ from common.utils.utils import DB_CONFIG, time_it
 from recommendation.model.user_movie_interaction import UserMovieInteraction
 from users.model.movie_rating_request import MovieRatingRequest
 from movies.model.user_movie_interaction_type import UserMovieInteractionType
-from common.utils.utils import letterboxd_interactions
 from psycopg.rows import dict_row
 
 
