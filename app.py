@@ -3,7 +3,7 @@ from apispec import APISpec
 from flask_apispec import FlaskApiSpec
 from flask_cors import CORS
 from flask_talisman import Talisman
-from flask import Flask
+from flask import Flask, request
 import logging
 import sys
 
@@ -18,8 +18,6 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from common.utils.utils import cache
 from dotenv import load_dotenv
 
-load_dotenv()
-
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -27,6 +25,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 
 def create_app():
@@ -101,6 +101,7 @@ def create_app():
 
 
 app = create_app()
+
 
 if __name__ == "__main__":
     app.run(debug=True)
