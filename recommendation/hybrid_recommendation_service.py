@@ -113,7 +113,7 @@ def get_hybrid_filtering():
 
 @time_it
 def generate_user_hybrid_recommendations(user_id: str):
-    print(f"🚀 Generating hybrid recs for user: {user_id}")
+    print(f"Generating hybrid recs for user: {user_id}")
     artifacts = azure_blob.load_artifacts()
 
     raw_ratings, centered_ratings = rating_matrix_service.get_rating_matrix_for_user(

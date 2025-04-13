@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from flask import Blueprint, g, make_response, jsonify, request
+from flask import Blueprint, g, make_response, jsonify
 from common.utils.context_service import get_user_context
 from reviews.reviews_service import (
     count_filtered_reviews,
@@ -7,12 +7,10 @@ from reviews.reviews_service import (
     get_review_filter_params,
 )
 
-from schema.user_schema import CreateUserRequestSchema, CreateUserResponseSchema
 from security.guards import authorization_guard, context_provider
 
 from security.guards import (
     authorization_guard,
-    create_users_permissions,
     unauthorized_error,
 )
 
@@ -32,18 +30,7 @@ def createUser():
     if not access_token:
         return make_response(jsonify(unauthorized_error), 401)
 
-    token_permissions = access_token.get("permissions")
-
-    if not token_permissions:
-        return users_service.createSelfUser(access_token)
-
-    required_permissions_set = set([create_users_permissions.create])
-    token_permissions_set = set(token_permissions)
-
-    if not required_permissions_set.issubset(token_permissions_set):
-        return users_service.createSelfUser(access_token)
-
-    return make_response(jsonify({"message": "Not Implemented Yet"}), 200)
+    return users_service.createSelfUser(access_token)
 
 
 @bp.route("/<int:id>", methods=["PUT"])
@@ -120,7 +107,7 @@ def rateMovies(user_id: int):
         if user is None:
             return make_response(jsonify({"error": "Invalid user"}), 404)
         if user.id != user_id:
-            return make_response(jsonify({"error": "No Permissions"}), 403)
+            return make_response(jsonify(unauthorized_error), 401)
 
         auth_id = users_service.getUserDetails(user_id).auth_id
         if auth_id is None:

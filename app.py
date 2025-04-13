@@ -1,16 +1,15 @@
 import os
 from apispec import APISpec
-from flask_apispec import FlaskApiSpec
 from flask_cors import CORS
 from flask_talisman import Talisman
-from flask import Flask, request
+from flask import Flask
 import logging
 import sys
 
 from common.utils.utils_views import bp as utils_bp
 from security.auth0_service import auth0_service
 from movies.movies_views import bp as movies_bp
-from users.users_views import bp as users_bp, createUser
+from users.users_views import bp as users_bp
 from reviews.reviews_views import bp as reviews_bp
 from recommendation.recommender_views import bp as recommendation_bp
 import exceptions_views
@@ -93,9 +92,6 @@ def create_app():
 
     app.logger.handlers = logging.getLogger().handlers
     app.logger.setLevel(logging.DEBUG)
-
-    docs = FlaskApiSpec(app)
-    docs.register(createUser, blueprint="users", endpoint="createUser")
 
     logger.info("Streamline API is starting up!")
     app.logger.info("Flask app initialized successfully.")

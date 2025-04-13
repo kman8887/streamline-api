@@ -1,16 +1,12 @@
 from dataclasses import asdict
 from typing import List, Optional, Tuple
-from bson import ObjectId
-from flask import g, jsonify, make_response, request
+from flask import request
 import psycopg
 
-from common.utils.utils import movies_db, users_db, DB_CONFIG
+from common.utils.utils import DB_CONFIG
 
 from reviews.review import Review, ReviewLike, ReviewWithMovieDetails
 from reviews.review_filter_params import ReviewFilterParams
-from security.guards import (
-    unauthorized_error,
-)
 
 
 def get_review_filter_params(
@@ -255,82 +251,3 @@ def count_filtered_reviews(params: ReviewFilterParams) -> int:
                 asdict(params),
             )
             return cur.fetchone()[0]
-
-
-def isOwnReviewOrHasPermission(permission, review_id):
-    access_token = g.get("access_token")
-    if not access_token:
-        return make_response(jsonify(unauthorized_error), 401)
-
-    token_permissions = access_token.get("permissions")
-
-    if not token_permissions:
-        return isOwnReview(access_token, review_id)
-
-    required_permissions_set = set([permission])
-    token_permissions_set = set(token_permissions)
-
-    if not required_permissions_set.issubset(token_permissions_set):
-        return isOwnReview(access_token, review_id)
-
-    return
-
-
-def isOwnReview(access_token, review_id):
-    auth_id = access_token.get("sub")
-
-    user = users_db.find_one({"auth_id": auth_id})
-
-    if user:
-        id = user.get("_id")
-        results = movies_db.count_documents(
-            {"reviews._id": ObjectId(review_id), "reviews.user_id": str(id)}
-        )
-
-        if results > 0:
-            return
-        else:
-            return make_response(jsonify(unauthorized_error), 401)
-
-
-def getReviewsPipeline(filters, sort, page_start, page_size, match_id_pipeline):
-    pipeline = [
-        {"$project": {"reviews": 1, "_id": 0}},
-        {"$unwind": "$reviews"},
-        {"$match": filters},
-        {
-            "$addFields": {
-                "reviews.funnyCount": {
-                    "$size": {"$ifNull": ["$reviews.found_funny", []]}
-                },
-                "reviews.helpfulCount": {
-                    "$size": {"$ifNull": ["$reviews.found_helpful", []]}
-                },
-                "reviews.notHelpfulCount": {
-                    "$size": {"$ifNull": ["$reviews.found_not_helpful", []]}
-                },
-            }
-        },
-        {"$sort": sort},
-        {
-            "$unset": [
-                "reviews.funnyCount",
-                "reviews.helpfulCount",
-                "reviews.notHelpfulCount",
-            ]
-        },
-        {
-            "$facet": {
-                "data": [
-                    {"$skip": page_start},
-                    {"$limit": page_size},
-                    {"$group": {"_id": "null", "reviews": {"$push": "$reviews"}}},
-                ],
-                "pageInfo": [{"$count": "totalRecords"}],
-            }
-        },
-    ]
-
-    pipeline.insert(0, match_id_pipeline)
-
-    return pipeline

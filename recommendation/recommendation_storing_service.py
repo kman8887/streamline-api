@@ -65,7 +65,7 @@ def __save_internal_predictions_to_postgres(df: pd.DataFrame):
             )
         conn.commit()
 
-    print(f"✅ PostgreSQL: {len(df)} rows modified")
+    print(f"PostgreSQL: {len(df)} rows modified")
 
 
 def build_hybrid_explanation(
@@ -114,7 +114,7 @@ def __save_external_recommendations_to_mongo_grouped(
             total_inserted += inserted
             total_modified += modified
 
-    print(f"✅ Mongo (parallel): {total_inserted} inserted, {total_modified} updated.")
+    print(f"Mongo (parallel): {total_inserted} inserted, {total_modified} updated.")
 
 
 def write_batch(batch_df: pd.DataFrame):

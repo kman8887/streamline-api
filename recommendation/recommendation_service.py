@@ -5,8 +5,6 @@ from psycopg.rows import dict_row
 
 
 def get_recommendations(user_id: str, movie_id="6798244c6243f72901adb45e"):
-    print(user_id, movie_id)
-
     query = """
     SELECT predicted_score
     FROM user_recommendations ur
@@ -20,13 +18,10 @@ def get_recommendations(user_id: str, movie_id="6798244c6243f72901adb45e"):
 
             predicted_score = cur.fetchone()
 
-    print(predicted_score)
     return predicted_score
 
 
 def get_last_recommendation_update(user_id: str) -> datetime.datetime:
-    print(user_id)
-
     query = """
     SELECT MAX(updated_at) AS last_update
     FROM user_recommendations ur
