@@ -71,6 +71,9 @@ def show_all_movies() -> Any:
 def get_onboarding_movies() -> Any:
     try:
         user = users_service.getUserFromAccessToken()
+        if user is None:
+            return make_response(jsonify({"error": "Invalid user"}), 404)
+        print(user)
 
         result = movies_service.get_onboarding_movies(user.id)
 
@@ -86,6 +89,8 @@ def get_onboarding_movies() -> Any:
 def get_watchlist() -> Any:
     try:
         user = users_service.getUserFromAccessToken()
+        if user is None:
+            return make_response(jsonify({"error": "Invalid user"}), 404)
         print(user)
         result = movies_service.get_watchlist_movies(user.id)
 

@@ -1,6 +1,7 @@
 import datetime
 import numpy as np
 import pandas as pd
+from common.utils import azure_blob
 from user_movie_interactions import user_movie_interaction_service
 from common.utils.utils import time_it
 from scipy.sparse import csr_matrix
@@ -10,9 +11,10 @@ LIKED_THRESHOLD = 7
 
 @time_it
 def create_ratings_matrix(
-    path="./data/external_interactions_transformed.csv", split_for_evaluation=False, k=1
+    split_for_evaluation=False, k=1
 ) -> tuple[csr_matrix, dict, dict, pd.DataFrame | None]:
-    df_external = df_external = pd.read_csv(path)
+    artifacts = azure_blob.load_artifacts()
+    df_external = artifacts["external_interactions_transformed"]
 
     df_internal = pd.DataFrame(
         user_movie_interaction_service.get_all_user_interactions()

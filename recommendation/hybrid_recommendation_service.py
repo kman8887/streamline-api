@@ -11,6 +11,9 @@ from recommendation import (
     ratings_matrix as rating_matrix_service,
 )
 from recommendation.evaluation import evaluate_topk_metrics
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 @time_it

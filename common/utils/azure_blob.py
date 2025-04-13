@@ -6,14 +6,15 @@ import joblib
 import numpy as np
 import pandas as pd
 from azure.storage.blob import BlobServiceClient
-from azure.core.pipeline.policies import RetryPolicy
-from azure.core.pipeline.transport import RequestsTransport
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Azure Blob configuration
 AZURE_ACCOUNT_URL = "https://streamlinestorageblob.blob.core.windows.net"
-AZURE_CONTAINER_NAME = "recs-artifacts"
+AZURE_CONTAINER_NAME = os.getenv("AZURE_CONTAINER_NAME")
 AZURE_CREDENTIAL = os.getenv("AZURE_CREDENTIAL")
 
 # Artifacts to load (blob path → local filename)
@@ -25,6 +26,7 @@ ARTIFACTS = {
     "movie_features": "latest/movie_features.npy",
     "movie_features_movie_id_lookup": "latest/movie_features_movie_id_lookup.json",
     "movies_metadata": "latest/movies_metadata.parquet",
+    "external_interactions_transformed": "latest/external_interactions_transformed.parquet",
 }
 
 # Local cache directory
@@ -43,7 +45,7 @@ def download_blob_to_cache(blob_path: str, local_path: Path):
     )
     with open(local_path, "wb") as f:
         f.write(blob_client.download_blob().readall())
-    print(f"📥 Downloaded: {blob_path} → {local_path}")
+    print(f"Downloaded: {blob_path} → {local_path}")
 
 
 def upload_file_to_blob(local_path: Path, blob_path: str, retries=3):
@@ -71,6 +73,13 @@ def upload_file_to_blob(local_path: Path, blob_path: str, retries=3):
                 print(traceback.format_exc())
 
 
+def is_expired(local_path: Path, max_age_seconds: int = 86400):  # 24 hrs
+    return (
+        not local_path.exists()
+        or (time.time() - local_path.stat().st_mtime) > max_age_seconds
+    )
+
+
 def load_artifacts(force_refresh=False):
     artifacts = {}
 
@@ -78,11 +87,11 @@ def load_artifacts(force_refresh=False):
         filename = Path(blob_path).name
         local_path = CACHE_DIR / filename
 
-        if force_refresh or not local_path.exists():
-            print(f"⬇️ Downloading {key} from Azure Blob...")
+        if force_refresh or not local_path.exists() or is_expired(local_path):
+            print(f"Downloading {key} from Azure Blob...")
             download_blob_to_cache(blob_path, local_path)
         else:
-            print(f"✅ Using cached {key} from {local_path}")
+            print(f"Using cached {key} from {local_path}")
 
         # Load into memory
         if filename.endswith(".pkl"):
@@ -95,7 +104,7 @@ def load_artifacts(force_refresh=False):
         elif filename.endswith(".parquet"):
             artifacts[key] = pd.read_parquet(local_path)
 
-    print("🚀 All artifacts ready.")
+    print("All artifacts ready.")
     return artifacts
 
 
@@ -126,7 +135,7 @@ def save_and_upload_artifact(key: str, data, version: str = "latest"):
     # Upload to Blob
     upload_file_to_blob(local_path, blob_path)
 
-    print(f"✅ {key} saved & uploaded to Azure Blob.")
+    print(f"{key} saved & uploaded to Azure Blob.")
 
 
 def save_all_artifacts(
@@ -143,27 +152,18 @@ def save_all_artifacts(
     if version is None:
         version = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%d")
 
-    print(f"📦 Saving and uploading artifacts under version: {version}")
+    print(f"Saving and uploading artifacts under version: {version}")
 
-    save_and_upload_artifact("tfidf_vectorizer", tfidf_vectorizer, version=version)
-    save_and_upload_artifact(
-        "item_feature_matrix", item_feature_matrix, version=version
-    )
-    save_and_upload_artifact(
-        "item_feature_matrix_movie_id_lookup",
-        item_feature_matrix_movie_id_lookup,
-        version=version,
-    )
-    save_and_upload_artifact("baseline_recs", baseline_recs, version=version)
-    save_and_upload_artifact(
-        "movie_features_movie_id_lookup",
-        movie_features_movie_id_lookup,
-        version=version,
-    )
+    def save_dual(key, data):
+        save_and_upload_artifact(key, data, version=version)
+        save_and_upload_artifact(key, data, version="latest")
 
-    save_and_upload_artifact(
-        "movies_metadata",
-        movies_metadata,
-        version=version,
+    save_dual("tfidf_vectorizer", tfidf_vectorizer)
+    save_dual("item_feature_matrix", item_feature_matrix)
+    save_dual(
+        "item_feature_matrix_movie_id_lookup", item_feature_matrix_movie_id_lookup
     )
-    save_and_upload_artifact("movie_features", movie_features, version=version)
+    save_dual("baseline_recs", baseline_recs)
+    save_dual("movie_features", movie_features)
+    save_dual("movie_features_movie_id_lookup", movie_features_movie_id_lookup)
+    save_dual("movies_metadata", movies_metadata)

@@ -2,9 +2,13 @@ import csv
 import pandas as pd
 import psycopg
 from common.utils.utils import DB_CONFIG, letterboxd_interactions
+from common.utils.azure_blob import save_and_upload_artifact
+from dotenv import load_dotenv
+
+load_dotenv()
 
 RAW_PATH = "./data/external_interactions_raw.csv"
-FINAL_PATH = "./data/external_interactions_transformed.csv"
+FINAL_PATH = "./data/external_interactions_transformed.parquet"
 
 
 def dump_letterboxd_interactions_to_csv():
@@ -49,30 +53,34 @@ def transform_external_csv():
     lb_map = load_letterboxd_to_movie_id_map()
     chunk_iter = pd.read_csv(RAW_PATH, chunksize=100_000)
 
-    with open(FINAL_PATH, "w", newline="", encoding="utf-8") as out_file:
-        writer = csv.DictWriter(
-            out_file, fieldnames=["user_id", "movie_id", "interaction_type", "rating"]
-        )
-        writer.writeheader()
+    transformed_chunks = []
 
-        for chunk in chunk_iter:
-            chunk["movie_id"] = chunk["letterboxd_movie_id"].map(lb_map)
-            chunk = chunk[chunk["movie_id"].notnull()]
-            chunk["user_id"] = "lb_" + chunk["letterboxd_username"]
-            chunk = chunk[
-                ["user_id", "movie_id", "interaction_type", "rating_val"]
-            ].rename(columns={"rating_val": "rating"})
-            chunk.to_csv(out_file, mode="a", index=False, header=False)
+    for chunk in chunk_iter:
+        chunk["movie_id"] = chunk["letterboxd_movie_id"].map(lb_map)
+        chunk = chunk[chunk["movie_id"].notnull()]
+        chunk["user_id"] = "lb_" + chunk["letterboxd_username"]
+        chunk = chunk[["user_id", "movie_id", "interaction_type", "rating_val"]].rename(
+            columns={"rating_val": "rating"}
+        )
+
+        transformed_chunks.append(chunk)
+
+    df_final = pd.concat(transformed_chunks, ignore_index=True)
+    df_final.to_parquet(FINAL_PATH, index=False)
 
 
 def run_pipeline():
-    print("🟡 Dumping MongoDB to CSV...")
+    print("Dumping MongoDB to CSV...")
     dump_letterboxd_interactions_to_csv()
 
-    print("🔄 Transforming CSV with internal movie_id...")
+    print("Transforming CSV with internal movie_id...")
     transform_external_csv()
 
-    print("✅ External interactions updated.")
+    print("External interactions updated.")
+
+    save_and_upload_artifact(
+        "external_interactions_transformed", pd.read_parquet(FINAL_PATH)
+    )
 
 
 if __name__ == "__main__":

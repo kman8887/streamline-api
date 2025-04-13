@@ -99,6 +99,22 @@ def get_bulk_movie_rating_request_body() -> List[MovieRatingRequest]:
         raise ValueError(f"Invalid request body: {e}")
 
 
+def updateCompletedOnboardingAppMetadata(auth_id):
+    token = app.config["MGMT_API_ACCESS_TOKEN"]
+    userId = urllib.parse.quote(auth_id)
+
+    url = f"https://dev-n20bicxbia0qquf1.eu.auth0.com/api/v2/users/{userId}"
+
+    payload = json.dumps({"app_metadata": {"onboarding_completed": True}})
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
+
+    return requests.request("PATCH", url, headers=headers, data=payload)
+
+
 def __getUserInfo(auth_id):
     token = app.config["MGMT_API_ACCESS_TOKEN"]
     userId = urllib.parse.quote(auth_id)
