@@ -2,6 +2,7 @@ FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /api
+ENV PYTHONPATH=/api
 
 # Install OS-level build dependencies
 RUN apt-get update && apt-get install -y \
@@ -26,8 +27,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all project files
 COPY . .
 
-# Give executable permission to your shell script
-RUN chmod +x ./run_batch_recommender.sh
-
-# Set the shell script as the entrypoint
-CMD ["sh", "./run_batch_recommender.sh"]
+CMD ["python", "recommendation/hybrid_recommendation_service.py"]

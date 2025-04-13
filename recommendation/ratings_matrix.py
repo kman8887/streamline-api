@@ -94,14 +94,6 @@ def create_ratings_matrix(
         shape=(len(user_ids), len(movie_ids)),
     )
 
-    print(df_grouped["centered_score"].describe())
-    print("---------------------------------------------------")
-    print(df_grouped["final_score"].describe())
-    print("---------------------------------------------------")
-    print(centered_data["centered_score"].describe())
-    print("---------------------------------------------------")
-    print(raw_data["final_score"].describe())
-
     return (
         raw_ratings_sparse,
         centered_ratings_sparse,

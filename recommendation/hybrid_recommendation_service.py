@@ -12,6 +12,7 @@ from recommendation import (
 )
 from recommendation.evaluation import evaluate_topk_metrics
 from dotenv import load_dotenv
+from common.utils.logging_service import logger
 
 load_dotenv()
 
@@ -57,34 +58,13 @@ def get_hybrid_filtering():
     cbf_df["movie_id"] = cbf_df["movie_id"].astype(str)
     cf_df["movie_id"] = cf_df["movie_id"].astype(str)
 
-    print(cbf_df["content_score"].describe())
-    print("---------------------------------------------------")
-    print(cf_df["cf_score"].describe())
-
     hybrid_df = merge_scores(cbf_df, cf_df)
 
     hybrid_df = normalize_per_user(hybrid_df, ["content_score", "cf_score"])
 
-    print(hybrid_df["content_score"].describe())
-    print("---------------------------------------------------")
-    print(hybrid_df["cf_score"].describe())
-
     hybrid_df = compute_hybrid_scores(hybrid_df)
 
-    print("---------------------------------------------------")
-    print(hybrid_df["raw_final_score"].describe())
-
     hybrid_df = apply_quality_boost(hybrid_df, movies_metadata)
-
-    print("---------------------------------------------------")
-    print(hybrid_df["final_score"].describe())
-
-    # hybrid_df["quality_boost_final_score"] = hybrid_df["final_score"]
-
-    # hybrid_df = normalize_per_user(hybrid_df, ["final_score"])
-
-    print("---------------------------------------------------")
-    print(hybrid_df["final_score"].describe())
 
     if test_df is not None:
         metrics = evaluate_topk_metrics(hybrid_df, test_df, k=10)
@@ -169,18 +149,6 @@ def apply_quality_boost(
     # Bayesian
     merged["weighted_rating"] = (v / (v + m)) * R + (m / (v + m)) * C
     merged["rating_score"] = merged["weighted_rating"] / 10
-
-    print("---------------------------------------------------")
-    print(merged["rating_score"].describe())
-
-    print("---------------------------------------------------")
-    print(merged["popularity"].describe())
-
-    # Soft Cap
-    merged["popularity_score"] = cap_boost(merged["popularity"], 40)  # 0 to ~1
-
-    print("---------------------------------------------------")
-    print(merged["popularity_score"].describe())
 
     merged["popularity_score"] = merged["popularity_score"].astype(float)
     merged["rating_score"] = merged["rating_score"].astype(float)

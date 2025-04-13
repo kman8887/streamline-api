@@ -5,6 +5,7 @@ from flask import jsonify, abort
 from pymongo import MongoClient
 from functools import wraps
 from flask_caching import Cache
+from common.utils.logging_service import logger
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,10 +35,12 @@ def json_abort(status_code, data=None):
 def time_it(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        logger.info(f"Starting {func.__name__}")
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
         elapsed_time = end_time - start_time
+        logger.info(f"{func.__name__} completed in {elapsed_time:.2f}s")
         print(f"Function '{func.__name__}' executed in {elapsed_time:.2f} seconds.")
         return result
 
