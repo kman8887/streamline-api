@@ -89,7 +89,6 @@ def get_movies_and_count_cached(
     cached_result = cache.get(cache_key)
 
     if cached_result:
-        print("cached result")
         return cached_result
 
     result = __get_movies_and_count(params)
@@ -216,8 +215,6 @@ def get_distinct_watch_providers(region: str) -> List[FilterOption]:
 
 def get_onboarding_movies(user_id: int) -> OnboardingMovie:
     page_start, page_size = __get_paging_params()
-
-    print(f"page_start: {page_start}, page_size: {page_size}")
 
     with psycopg.connect(**DB_CONFIG) as conn:
         with conn.cursor(row_factory=dict_row) as cur:
@@ -377,7 +374,6 @@ def get_movie_details(
     try:
         with psycopg.connect(**DB_CONFIG, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
-                print("query: " + query)
                 cur.execute(query, params)
                 row = cur.fetchone()
                 if not row:
