@@ -19,7 +19,7 @@ from common.utils.utils import cache
 bp_name = "recommendation"
 bp_url_prefix = "/api/v1.0/recommendation"
 bp = Blueprint(bp_name, __name__, url_prefix=bp_url_prefix)
-LOCK_EXPIRY_SECONDS = 30 * 60
+LOCK_EXPIRY_SECONDS = 10 * 60
 
 
 @bp.route("/<int:user_id>", methods=["GET"])
