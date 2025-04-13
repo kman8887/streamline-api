@@ -97,6 +97,9 @@ def create_app():
     docs = FlaskApiSpec(app)
     docs.register(createUser, blueprint="users", endpoint="createUser")
 
+    logger.info("Streamline API is starting up!")
+    app.logger.info("Flask app initialized successfully.")
+
     return app
 
 
