@@ -5,6 +5,9 @@ from flask import jsonify, abort
 from pymongo import MongoClient
 from functools import wraps
 from flask_caching import Cache
+from dotenv import load_dotenv
+
+load_dotenv()
 
 cache = Cache()
 mongo = MongoClient(os.getenv("MONGO_URL"))

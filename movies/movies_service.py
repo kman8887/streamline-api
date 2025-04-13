@@ -214,13 +214,14 @@ def get_distinct_watch_providers(region: str) -> List[FilterOption]:
     return watch_providers
 
 
-@cache.memoize(timeout=3600)
 def get_onboarding_movies(user_id: int) -> OnboardingMovie:
     page_start, page_size = __get_paging_params()
 
+    print(f"page_start: {page_start}, page_size: {page_size}")
+
     with psycopg.connect(**DB_CONFIG) as conn:
         with conn.cursor(row_factory=dict_row) as cur:
-            # ✅ Fetch onboarding movies
+            # Fetch onboarding movies
             cur.execute(
                 """
                 SELECT movies.id, title, release_date, poster_path
@@ -233,7 +234,7 @@ def get_onboarding_movies(user_id: int) -> OnboardingMovie:
                 WHERE umi.id IS NULL
                 AND interaction_count IS NOT NULL
                 ORDER BY interaction_count DESC 
-                OFFSET %s LIMIT 10;
+                OFFSET %s LIMIT 12;
                 """,
                 [user_id, page_start],
             )

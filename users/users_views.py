@@ -122,8 +122,14 @@ def rateMovies(user_id: int):
         if user.id != user_id:
             return make_response(jsonify({"error": "No Permissions"}), 403)
 
+        auth_id = users_service.getUserDetails(user_id).auth_id
+        if auth_id is None:
+            return make_response(jsonify({"error": "Invalid user ID"}), 404)
+
         # Process the movies list
         user_movie_interaction_service.bulk_rate_movies(user_id, movies)
+
+        users_service.updateCompletedOnboardingAppMetadata(auth_id)
 
         return make_response(jsonify({"message": "Movies rated successfully"}), 200)
     except ValueError as e:
