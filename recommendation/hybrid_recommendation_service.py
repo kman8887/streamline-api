@@ -1,3 +1,4 @@
+import traceback
 from typing import List
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ def get_hybrid_filtering():
         movie_id_lookup,
         test_df,
     ) = rating_matrix_service.create_ratings_matrix(
-        split_for_evaluation=split_for_evaluation, k=1
+        split_for_evaluation=split_for_evaluation
     )  # shape sparse array [n_users x n_movies]; {user_id: row_index}; {movie_id: col_index}
 
     movies_metadata = pd.DataFrame(get_movies_metadata())
@@ -38,13 +39,13 @@ def get_hybrid_filtering():
         )
     )
 
-    if not split_for_evaluation:
-        # Only use internal users (numeric user_ids) for content-based filtering
-        internal_user_ids = [uid for uid in user_id_lookup if uid.isnumeric()]
-        internal_user_indices = [user_id_lookup[uid] for uid in internal_user_ids]
+    # if not split_for_evaluation:
+    #     # Only use internal users (numeric user_ids) for content-based filtering
+    internal_user_ids = [uid for uid in user_id_lookup if uid.isnumeric()]
+    internal_user_indices = [user_id_lookup[uid] for uid in internal_user_ids]
 
-        raw_ratings_sparse = raw_ratings_sparse[internal_user_indices]
-        user_id_lookup = {uid: i for i, uid in enumerate(internal_user_ids)}
+    raw_ratings_sparse = raw_ratings_sparse[internal_user_indices]
+    user_id_lookup = {uid: i for i, uid in enumerate(internal_user_ids)}
 
     cbf_df, tfidf_vectorizer, tfidf_matrix, tfidf_movie_id_to_index = (
         content_based_filtering_service.get_content_based_filtering_model(
@@ -67,28 +68,28 @@ def get_hybrid_filtering():
     hybrid_df = apply_quality_boost(hybrid_df, movies_metadata)
 
     if test_df is not None:
-        metrics = evaluate_topk_metrics(hybrid_df, test_df, k=10)
+        metrics = evaluate_topk_metrics(hybrid_df, test_df, k=100)
         print("Evaluation Metrics:")
         for metric, value in metrics.items():
             print(f"   {metric}: {value}")
+    else:
+        recommendation_storing_service.store_predictions(hybrid_df)
 
-    recommendation_storing_service.store_predictions(hybrid_df)
+        item_feature_matrix = tfidf_matrix.toarray()
 
-    item_feature_matrix = tfidf_matrix.toarray()
+        baseline_recs = content_based_filtering_service.build_baseline_recs(
+            cbf_df
+        )  # Top movies overall or diverse
 
-    baseline_recs = content_based_filtering_service.build_baseline_recs(
-        cbf_df
-    )  # Top movies overall or diverse
-
-    azure_blob.save_all_artifacts(
-        tfidf_vectorizer=tfidf_vectorizer,
-        item_feature_matrix=item_feature_matrix,
-        item_feature_matrix_movie_id_lookup=tfidf_movie_id_to_index,
-        movie_features=movie_features,
-        movie_features_movie_id_lookup=movie_id_lookup,
-        baseline_recs=baseline_recs,
-        movies_metadata=movies_metadata,
-    )
+        azure_blob.save_all_artifacts(
+            tfidf_vectorizer=tfidf_vectorizer,
+            item_feature_matrix=item_feature_matrix,
+            item_feature_matrix_movie_id_lookup=tfidf_movie_id_to_index,
+            movie_features=movie_features,
+            movie_features_movie_id_lookup=movie_id_lookup,
+            baseline_recs=baseline_recs,
+            movies_metadata=movies_metadata,
+        )
 
 
 @time_it
@@ -149,6 +150,8 @@ def apply_quality_boost(
     # Bayesian
     merged["weighted_rating"] = (v / (v + m)) * R + (m / (v + m)) * C
     merged["rating_score"] = merged["weighted_rating"] / 10
+
+    merged["popularity_score"] = cap_boost(merged["popularity"], threshold=40)
 
     merged["popularity_score"] = merged["popularity_score"].astype(float)
     merged["rating_score"] = merged["rating_score"].astype(float)
@@ -222,7 +225,12 @@ def get_normal_final_scores(
 
 
 def run_recommender():
-    get_hybrid_filtering()
+    try:
+        get_hybrid_filtering()
+    except Exception as e:
+        logger.error(f"Error in hybrid recommendation service: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise e
 
 
 if __name__ == "__main__":

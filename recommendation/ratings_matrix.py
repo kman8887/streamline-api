@@ -6,12 +6,12 @@ from user_movie_interactions import user_movie_interaction_service
 from common.utils.utils import time_it
 from scipy.sparse import csr_matrix
 
-LIKED_THRESHOLD = 7
+LIKED_THRESHOLD = 5
 
 
 @time_it
 def create_ratings_matrix(
-    split_for_evaluation=False, k=1
+    split_for_evaluation=False,
 ) -> tuple[csr_matrix, dict, dict, pd.DataFrame | None]:
     artifacts = azure_blob.load_artifacts()
     df_external = artifacts["external_interactions_transformed"]
@@ -19,11 +19,6 @@ def create_ratings_matrix(
     df_internal = pd.DataFrame(
         user_movie_interaction_service.get_all_user_interactions()
     )
-
-    if split_for_evaluation:
-        # Subset df_external for testing
-        subset_length = len(df_external) // 50  # Get 1/50th of the rows
-        df_external = df_external.iloc[:subset_length]
 
     df_all = pd.concat([df_internal, df_external], ignore_index=True)
 
@@ -45,10 +40,9 @@ def create_ratings_matrix(
 
     if split_for_evaluation:
         positive_interactions = df_grouped[df_grouped["final_score"] >= LIKED_THRESHOLD]
-        split_df, test_df = leave_k_out_split(positive_interactions, k=k)
+        split_df, test_df = leave_k_out_split(positive_interactions)
         # use split_df for training, but ALSO include negative/neutral data to build the model
         df_grouped = df_grouped[~df_grouped.index.isin(test_df.index)]
-
     else:
         test_df = None
 
@@ -137,13 +131,23 @@ def get_rating_matrix_for_user(
     return raw_ratings, centered_ratings  # shape: {movie_id: final_score}
 
 
-def leave_k_out_split(df: pd.DataFrame, k: int = 1, seed: int = 42):
+def leave_k_out_split(
+    df: pd.DataFrame, percent: float = 0.1, seed: int = 42, min_interactions: int = 10
+):
     np.random.seed(seed)
     test_rows = []
+    internal_users = df[df["user_id"].str.isnumeric()]
 
-    for user_id, group in df.groupby("user_id"):
-        if len(group) > k:
-            test_sample = group.sample(k)
+    print(str(len(internal_users)) + " internal users")
+
+    for user_id, group in internal_users.groupby("user_id"):
+        if len(group) < min_interactions:
+            continue
+
+        n_test = max(1, int(len(group) * percent))
+
+        if len(group) > n_test:
+            test_sample = group.sample(n=n_test, random_state=seed)
             test_rows.append(test_sample)
 
     test_df = pd.concat(test_rows)

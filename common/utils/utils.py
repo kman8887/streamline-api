@@ -1,4 +1,4 @@
-import os
+import psutil, os
 import time
 from typing import Dict
 from flask import jsonify, abort
@@ -42,6 +42,10 @@ def time_it(func):
         elapsed_time = end_time - start_time
         logger.info(f"{func.__name__} completed in {elapsed_time:.2f}s")
         print(f"Function '{func.__name__}' executed in {elapsed_time:.2f} seconds.")
+        logger.info(
+            f"Memory usage: {psutil.Process(os.getpid()).memory_info().rss / 1024**2:.2f} MB"
+        )
+
         return result
 
     return wrapper

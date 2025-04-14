@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def evaluate_topk_metrics(pred_df: pd.DataFrame, test_df: pd.DataFrame, k: int = 10):
+def evaluate_topk_metrics(pred_df: pd.DataFrame, test_df: pd.DataFrame, k: int = 100):
     users = test_df["user_id"].unique()
 
     total_hits = 0
@@ -18,6 +18,10 @@ def evaluate_topk_metrics(pred_df: pd.DataFrame, test_df: pd.DataFrame, k: int =
         recommended = set(user_recs["movie_id"])
         relevant = set(test_df[test_df["user_id"] == user_id]["movie_id"])
 
+        if not relevant:
+            continue
+
+        print(str(len(relevant)) + "test data")
         hits = len(recommended & relevant)
 
         # Per-user metrics
@@ -28,6 +32,7 @@ def evaluate_topk_metrics(pred_df: pd.DataFrame, test_df: pd.DataFrame, k: int =
         total_precision += precision
         total_recall += recall
 
+    print(total_hits)
     n_users = len(users)
     return {
         "Hit@K": round(total_hits / n_users, 4),
